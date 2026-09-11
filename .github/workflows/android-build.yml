@@ -11,30 +11,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Find and extract project ZIP
+      - name: Download Lebour Book project
         run: |
-          ZIP=$(find . -maxdepth 2 -type f -iname "*.zip" | head -1)
-          if [ -z "$ZIP" ]; then
-            echo "No project ZIP found"
-            exit 1
-          fi
-          echo "Found ZIP: $ZIP"
-          mkdir -p project
-          unzip -o "$ZIP" -d project
+          curl -L \
+            "https://github.com/akash4521/Lebour-Book/raw/refs/heads/main/Lebour-Book-GitHub-Ready.zip" \
+            -o project.zip
+
+          unzip -o project.zip -d project
+
+          echo "Project extracted:"
+          find project -maxdepth 3 -type f | head -50
 
       - name: Find project folder
         run: |
           PROJECT=$(find project -name package.json -printf '%h\n' | head -1)
+
           if [ -z "$PROJECT" ]; then
             echo "package.json not found"
             exit 1
           fi
+
           echo "PROJECT=$PROJECT" >> $GITHUB_ENV
+          echo "Project folder: $PROJECT"
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
         working-directory: ${{ env.PROJECT }}
@@ -60,7 +63,9 @@ jobs:
 
       - name: Build APK
         working-directory: ${{ env.PROJECT }}/android
-        run: chmod +x gradlew && ./gradlew assembleDebug
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
