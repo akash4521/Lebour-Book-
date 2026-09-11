@@ -11,10 +11,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract project
+      - name: Find and extract project ZIP
         run: |
-          unzip -o Lebour-Book-GitHub-Ready.zip -d project
+          ZIP=$(find . -maxdepth 2 -type f -iname "*.zip" | head -1)
+          if [ -z "$ZIP" ]; then
+            echo "No project ZIP found"
+            exit 1
+          fi
+          echo "Found ZIP: $ZIP"
+          mkdir -p project
+          unzip -o "$ZIP" -d project
+
+      - name: Find project folder
+        run: |
           PROJECT=$(find project -name package.json -printf '%h\n' | head -1)
+          if [ -z "$PROJECT" ]; then
+            echo "package.json not found"
+            exit 1
+          fi
           echo "PROJECT=$PROJECT" >> $GITHUB_ENV
 
       - name: Setup Node
