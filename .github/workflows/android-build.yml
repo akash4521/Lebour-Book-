@@ -8,31 +8,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout workflow
         uses: actions/checkout@v4
 
-      - name: Download Lebour Book project
+      - name: Download Lebour Book ZIP
         run: |
-          curl -L \
-            "https://github.com/akash4521/Lebour-Book/raw/refs/heads/main/Lebour-Book-GitHub-Ready.zip" \
-            -o project.zip
-
-          unzip -o project.zip -d project
-
-          echo "Project extracted:"
-          find project -maxdepth 3 -type f | head -50
+          curl -fL "https://raw.githubusercontent.com/akash4521/Lebour-Book/main/Lebour-Book-GitHub-Ready.zip" -o lebour-book.zip
+          ls -lh lebour-book.zip
+          unzip -o lebour-book.zip -d project
 
       - name: Find project folder
         run: |
-          PROJECT=$(find project -name package.json -printf '%h\n' | head -1)
+          PROJECT=$(find project -type f -name package.json -printf '%h\n' | head -1)
 
           if [ -z "$PROJECT" ]; then
             echo "package.json not found"
             exit 1
           fi
 
-          echo "PROJECT=$PROJECT" >> $GITHUB_ENV
+          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
           echo "Project folder: $PROJECT"
+
+      - name: Fix TypeScript errors
+        working-directory: ${{ env.PROJECT }}
+        run: |
+          cat > src/vite-env.d.ts <<'EOF'
+          /// <reference types="vite/client" />
+          EOF
+
+          sed -i 's/as T\[\])/as T)/' src/lib/db.ts
+
+          echo "TypeScript fixes applied:"
+          cat src/vite-env.d.ts
+          grep -n "as T" src/lib/db.ts
 
       - name: Setup Node
         uses: actions/setup-node@v4
